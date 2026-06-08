@@ -16,37 +16,9 @@ away. The 9-channel design exists to exploit that motion.
 
 ## Pipeline
 
-```
-   frame t-2 ┐
-   frame t-1 ┤  stack on channel axis            ┌──────────────── train-time only ───────────────┐
-   frame t   ┘  (t = current / annotated)        │ small-object copy-paste augmentation:           │
-        │                                         │ downscale instances → alpha-blend back, with    │
-        ▼                                         │ optional per-frame motion (moving targets)       │
-  (B, 9, H, W)  9-channel input ─────────────────┤  (manufactures the missing small-object regime)  │
-        │                                         └──────────────────────────────────────────────────┘
-        ▼
- ┌───────────────────────────────────────────────────────────┐
- │  TemporalPreEmbed   (B,9,H,W) → (B,3,H,W)   motion-aware    │
- │                                                             │
- │   preembed : out = cur + R(diffs)            R: zero-init   │
- │   bgsub    : out = cur + α·(cur − mean(past)) + R           │
- │   bgsubcoh : bgsub, but the foreground is coherence-gated   │
- │             (keeps only motion consistent across all        │
- │              transitions; suppresses sensor noise)          │
- └───────────────────────────────────────────────────────────┘
-        │  (B, 3, H, W)   ← sharp, in-distribution for pretrained weights
-        ▼
-  DINOv2 ViT backbone (windowed attention)      ← 3-channel weights load byte-for-byte
-        │
-        ▼
-  Multi-scale projector (ViTDet/LW-DETR FPN)
-        │
-        ▼
-  LW-DETR deformable decoder + detection heads
-        │
-        ▼
-  detections  { pred_boxes, pred_logits }
-```
+![Pipeline comparison — baseline vs preembed vs bgsub](docs/figures/pipeline_3way.png)
+
+*The three input / fusion configurations. Only the front — the input and the orange `TemporalPreEmbed` block — differs; the patch embed → DINOv2 → LW-DETR decoder downstream is **identical to upstream RF-DETR** and loads its pretrained weights verbatim.*
 
 At initialisation `R ≡ 0` and (for `bgsub`/`bgsubcoh`) the add-weight term vanishes on static
 input, so the backbone receives exactly the current frame → **identical to the single-frame
@@ -80,6 +52,12 @@ new module inside the backbone plus two config fields and a one-line gate in the
   with the small-object regime nearly empty — so the detection bottleneck was **data, not
   architecture**. A small-object copy-paste augmentation manufactures the missing small (optionally
   moving) targets.
+
+The only architectural change is the front module. In `preembed` it is a zero-init residual on
+motion (frame) differences — it adds nothing at initialisation (so the model starts exactly at the
+single-frame baseline) and learns the temporal cue as a residual from there:
+
+![TemporalPreEmbed (preembed) — detailed schematic](docs/figures/preembed_detail.png)
 
 Full details: **[docs/architecture.md](docs/architecture.md)** ·
 **[docs/temporal-fusion.md](docs/temporal-fusion.md)** ·
