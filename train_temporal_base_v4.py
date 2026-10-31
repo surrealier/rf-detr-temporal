@@ -29,7 +29,7 @@ from rfdetr.models.lwdetr import build_criterion_and_postprocessors, build_model
 from rfdetr.utilities.tensors import NestedTensor
 
 # ─── Config (overridable via env vars) ───
-DATA_DIR = os.environ.get("DATA_DIR", "/home/data/hdd1_bongkj/data_ready_v4")
+DATA_DIR = os.environ.get("DATA_DIR", "./data_ready_v4")
 from datetime import datetime
 
 _run_tag = os.environ.get("RUN_TAG", "")

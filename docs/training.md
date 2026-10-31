@@ -239,7 +239,7 @@ fed while staying within Docker `/dev/shm` (each batch is ~260 MB, and roughly
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `DATA_DIR` | `/home/data/hdd1_bongkj/data_ready_v4` | Directory containing `train.txt` / `valid.txt` |
+| `DATA_DIR` | `./data_ready_v4` | Directory containing `train.txt` / `valid.txt` |
 | `RUN_TAG` | `""` | Suffix appended to the timestamped run dir under `runs/` |
 | `NUM_GPUS` | `2` | DDP world size (processes spawned) |
 | `NUM_WORKERS` | `5` | DataLoader workers per process |
